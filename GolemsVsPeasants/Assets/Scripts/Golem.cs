@@ -9,11 +9,13 @@ using UnityEngine.AI;
 [RequireComponent(typeof(Rigidbody))]
 public class Golem : OVRGrabbable 
 {
+	public float Speed = 0.4f;
+
 	NavMeshAgent _agent;
 	Rigidbody _rb;
 	bool _falling = false;
+	bool _advancing = false;
 	Coroutine _dropCoroutine;
-
 
 	void Awake()
 	{
@@ -25,8 +27,12 @@ public class Golem : OVRGrabbable
 	
 	void Update () 
 	{
-		if(_falling && Mathf.Abs(_rb.velocity.y) < 0.1f ){
+		if(_falling && _rb.velocity.y > 0f ){
 			_falling = false;
+		}
+
+		if (_advancing) {
+			_agent.transform.Translate (0, 0, Speed * Time.deltaTime);
 		}
 	}
 
@@ -36,6 +42,10 @@ public class Golem : OVRGrabbable
 		m_grabbedCollider = grabPoint;
 		_falling = false;
 		_agent.enabled = false;
+		_advancing = false;
+
+		if (_dropCoroutine != null)
+			StopCoroutine (_dropCoroutine);
 	}
 
 
@@ -44,9 +54,6 @@ public class Golem : OVRGrabbable
 		m_grabbedBy = null;
 		m_grabbedCollider = null;
 
-		if (_dropCoroutine != null)
-			StopCoroutine (_dropCoroutine);
-
 		_dropCoroutine = StartCoroutine (_DropCoroutine());
 	}
 
@@ -54,6 +61,8 @@ public class Golem : OVRGrabbable
 	IEnumerator _DropCoroutine()
 	{
 		_falling = true;
+
+		transform.forward = new Vector3 (transform.forward.x, 0, transform.forward.z);
 
 		_rb.isKinematic = false;
 		_rb.velocity = Vector3.zero;
@@ -66,6 +75,6 @@ public class Golem : OVRGrabbable
 
 		yield return new WaitForSeconds (0.4f);
 
-		_agent.SetDestination (transform.position + transform.forward*100); // just walk forward
+		_advancing = true;
 	}
 }
